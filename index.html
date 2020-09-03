@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
+    <title>Livestream Project Ideas</title>
+  </head>
+
+  <body class="bg-dark text-white">
+    <nav class="navbar navbar-light bg-light">
+      <div class="container">
+        <span class="navbar-brand mb-0 h1">Boite a idées en temps réel</span>
+      </div>
+    </nav>
+
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-md-6">
+          <h1 class="text-center mb-3">Proposez une idée</h1>
+          <form id="form">
+            <div class="form-group">
+              <input
+                type="text"
+                id="idea-text"
+                class="form-control bg-dark text-white"
+                placeholder="quelle est votre idée? (30 chars max)"
+                maxlength="30"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <input
+                type="text"
+                id="idea-tech"
+                class="form-control bg-dark text-white"
+                placeholder="Language, framework, etc"
+                maxlength="30"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <input
+                type="text"
+                id="idea-viewer"
+                class="form-control bg-dark text-white"
+                placeholder="entrez votre nom"
+                maxlength="20"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+              Proposer l'idée
+            </button>
+          </form>
+        </div>
+        <div class="col-md-6">
+          <div id="ideas"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/@feathersjs/client@^4.3.0/dist/feathers.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+
+    <script>
+      // Installation de Socket.io
+      const socket = io('http://localhost:8080');
+
+      // Initialisation de l'app feathers
+      const app = feathers();
+
+      // Enregistrement de Socket.io pour parler au serveur
+      app.configure(feathers.socketio(socket));
+
+      // ajout d'un écouteur d'evenements
+      document.getElementById('form').addEventListener('submit', sendIdea);
+
+      // handler de l'écouteur d'évenement
+      async function sendIdea(e) {
+        e.preventDefault();
+
+        const text = document.getElementById('idea-text');
+        const tech = document.getElementById('idea-tech');
+        const viewer = document.getElementById('idea-viewer');
+
+        // Création d'une nouvelle idée
+        app.service('ideas').create({
+          text: text.value,
+          tech: tech.value,
+          viewer: viewer.value,
+        });
+
+        // Vider les inputs
+        text.value = '';
+        tech.value = '';
+        viewer.value = '';
+      }
+
+      //fonction qui permet de visualiser les idées
+      function renderIdea(idea) {
+        document.getElementById(
+          'ideas'
+        ).innerHTML += `<div class="card bg-secondary my-3">
+              <div class="card-body">
+                <p class="lead">
+                  ${idea.text} <strong>(${idea.tech})</strong>
+                  <br />
+                  <em>Submitted by ${idea.viewer}</em>
+                  <br />
+                  <small>${idea.time}</small>
+                </p>
+              </div>
+            </div>`;
+      }
+
+      async function init() {
+        // Trouver les idées
+        const ideas = await app.service('ideas').find();
+
+        // Ajouter les idées existantes à la liste
+        ideas.forEach(renderIdea);
+
+        // Ajouter une nouvelle idée en temps réel
+        app.service('ideas').on('created', renderIdea);
+      }
+
+      init();
+    </script>
+  </body>
+</html>
